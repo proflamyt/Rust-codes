@@ -1,3 +1,5 @@
 fn main() {
-    println!("Hello, world!");
+    let name = "olamide";
+
+    println!("Hello {name}, welcome!");
 }
