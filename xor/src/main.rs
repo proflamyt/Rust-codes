@@ -34,6 +34,7 @@ fn main() {
 
 
 fn xor_vectors(a: &[u8], b: &[u8]) -> Option<Vec<u8>> {
+    
     if a.len() != b.len() {
         return None; // XOR operation requires equal-length vectors
     }

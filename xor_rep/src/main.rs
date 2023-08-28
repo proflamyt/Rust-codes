@@ -4,7 +4,7 @@ use std::io::{self, BufRead};
 fn main() {
     
 
-     let mut password = String::new();
+    let mut password = String::new();
 
     let stdin = io::stdin();
 
