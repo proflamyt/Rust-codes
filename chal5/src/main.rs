@@ -21,13 +21,13 @@ fn main() {
 
         let block_bytes = split_bytes_into_blocks(&bytes, keysize, true);
 
-        for i in 0..block_bytes.len() {
+        for i in 0..(block_bytes.len()-1) {
             let c: Option<u32> =  hamming_distance(&block_bytes[i], &block_bytes[i+1]);
             match c {
                 Some(distance) => {
                     // Convert the Vec<u8> to a hexadecimal string
                     
-                    let normalized: u32 = distance/(keysize as u32);
+                    let normalized: u32 = distance;
                     norm.push(normalized);
     
                     // find smallest
@@ -42,16 +42,32 @@ fn main() {
 
         norm.clear();
         
-        println!("Hamming distance is ...: {:?}", norm);
     }
-    if let Some((min_index, min_value)) = &averages.iter().enumerate().min_by_key(|(_, &x)| x) {
-        println!("Numbers: {:?}", &averages);
-        println!("Smallest Number: {}", min_value);
-        println!("Index of Smallest Number: {}", min_index+2);
+    
+    
+
+    if let Some((min_index, _min_value)) = &averages.iter().enumerate().min_by_key(|(_, &x)| x) {
+        let key_size = min_index + 2;
+        let block_bytes: Vec<Vec<u8>> = split_bytes_into_blocks(&bytes, key_size, false);
+
+        let mut blocks = Vec::new();
+        
+    
+        for j in 0..key_size {
+            let mut trans_block = Vec::with_capacity(key_size);
+
+            for block in &block_bytes {
+                trans_block.push(block[j]);
+            }
+            bruteforce_xor(&trans_block);
+            blocks.push(trans_block);
+        }
+        
     } else {
         println!("The vector is empty.");
     }
 
+   
 
 }
 
@@ -99,13 +115,13 @@ fn split_bytes_into_blocks(data: &[u8], block_size: usize, instance: bool) -> Ve
         if current_block.len() == block_size {
             blocks.push(current_block.clone()); // Clone to create a new block
             current_block.clear();
+            count += 1;
         }
 
-        if instance && count == 4 {
+        if instance == true && count == 4 {
             return blocks;
         }
 
-        count += 1;
     }
 
     // Add any remaining bytes as the last block
@@ -114,4 +130,21 @@ fn split_bytes_into_blocks(data: &[u8], block_size: usize, instance: bool) -> Ve
     }
 
     blocks
+}
+
+
+fn bruteforce_xor(s: &Vec<u8>)  {
+    for byte_value in 0..=128 {
+        let byte = byte_value as u8;
+        let mut xor_result_string : Vec<u8> = Vec::new();
+        for ch in s {
+            let res = (ch ^ byte) as u8;
+            xor_result_string.push(res);
+        }
+        let decoded_str = String::from_utf8_lossy(&xor_result_string);
+
+        if decoded_str.chars().all(|c| c.is_ascii_alphanumeric() || c.is_whitespace()) {
+            println!(" Decoded: {}",  decoded_str);
+        }
+    }
 }
