@@ -11,43 +11,46 @@ fn main() {
     
 
 
-    for keysize in 2..40 {
-
-        if keysize > my_str.len() || 2*keysize > my_str.len() {
-            break;
-        }
+    for keysize in 2..41 {
 
         let mut norm: Vec<u32> = Vec::new();
 
-        let block_bytes = split_bytes_into_blocks(&bytes, keysize, true);
+       // print!("Bytes  {:?}", bytes);
 
-        for i in 0..(block_bytes.len()-1) {
+        let block_bytes = split_bytes_into_blocks(&bytes, keysize, true);
+        let num_blocks = block_bytes.len();
+        
+        for i in (0..num_blocks-1).step_by(2) {
+
             let c: Option<u32> =  hamming_distance(&block_bytes[i], &block_bytes[i+1]);
+            
             match c {
                 Some(distance) => {
                     // Convert the Vec<u8> to a hexadecimal string
-                    
-                    let normalized: u32 = distance;
-                    norm.push(normalized);
-    
+                    norm.push(distance/keysize as u32);
                     // find smallest
-                    
                 }
                 None => println!("Error: Vectors must have equal lengths to compute XOR."),
             }
+            
         }
+        print!("norms {:?}", norm);
+
         let sum: u32 = norm.iter().sum();
-        let average: u32 = sum / norm.len() as u32;
+        let average: f32 = sum as f32 / norm.len() as f32;
         averages.push(average);
 
         norm.clear();
         
     }
     
+   print!("averages {:?}", averages);
     
 
     if let Some((min_index, _min_value)) = &averages.iter().enumerate().min_by_key(|(_, &x)| x) {
+
         let key_size = min_index + 2;
+
         let block_bytes: Vec<Vec<u8>> = split_bytes_into_blocks(&bytes, key_size, false);
 
         let mut blocks = Vec::new();
@@ -75,9 +78,7 @@ fn main() {
 
 
 fn hamming_distance(a:&[u8], b:&[u8]) ->  Option<u32> {
-    if a.len() != b.len() {
-        return None;
-    }
+    assert_eq!(a.len(), b.len());
 
     let mut result: u32 = 0;
 
@@ -134,7 +135,7 @@ fn split_bytes_into_blocks(data: &[u8], block_size: usize, instance: bool) -> Ve
 
 
 fn bruteforce_xor(s: &Vec<u8>)  {
-    for byte_value in 0..=128 {
+    for byte_value in 0..=255 {
         let byte = byte_value as u8;
         let mut xor_result_string : Vec<u8> = Vec::new();
         for ch in s {
