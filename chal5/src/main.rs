@@ -1,13 +1,14 @@
 use base64::{Engine as _, engine::general_purpose};
 use std::fs::File;
 use std::io::{self, BufRead};
+use std::collections::HashMap;
 
 
 fn main() {
 
     let my_str = read_file();
     let bytes = general_purpose::STANDARD.decode(&my_str).unwrap();
-    let mut averages =  Vec::new();
+    let mut averages: HashMap<usize, f32> = HashMap::new();
     
 
 
@@ -34,43 +35,35 @@ fn main() {
             }
             
         }
-        print!("norms {:?}", norm);
+        // print!("norms {:?}", norm);
 
         let sum: u32 = norm.iter().sum();
         let average: f32 = sum as f32 / norm.len() as f32;
-        averages.push(average);
-
+        averages.insert(keysize, average);
         norm.clear();
         
     }
+
+    let mut kv_pairs: Vec<_> = averages.iter().collect();
+
+
+    kv_pairs.sort_by(|a, b| a.1.partial_cmp(b.1).unwrap());
+
+    let smallest_keys: Vec<usize> = kv_pairs.iter().take(1).map(|&(key, _)| *key).collect();
+
     
-   print!("averages {:?}", averages);
-    
+    for i in smallest_keys {
 
-    if let Some((min_index, _min_value)) = &averages.iter().enumerate().min_by_key(|(_, &x)| x) {
+        let first_block_bytes: Vec<Vec<u8>> = split_bytes_into_blocks(&bytes, i , false);
 
-        let key_size = min_index + 2;
+        let trans_blocks = transpose_block(first_block_bytes, i );
 
-        let block_bytes: Vec<Vec<u8>> = split_bytes_into_blocks(&bytes, key_size, false);
-
-        let mut blocks = Vec::new();
-        
-    
-        for j in 0..key_size {
-            let mut trans_block = Vec::with_capacity(key_size);
-
-            for block in &block_bytes {
-                trans_block.push(block[j]);
-            }
-            bruteforce_xor(&trans_block);
-            blocks.push(trans_block);
+        for j in trans_blocks {
+            bruteforce_xor(&j);
         }
-        
-    } else {
-        println!("The vector is empty.");
+
     }
 
-   
 
 }
 
@@ -119,7 +112,7 @@ fn split_bytes_into_blocks(data: &[u8], block_size: usize, instance: bool) -> Ve
             count += 1;
         }
 
-        if instance == true && count == 4 {
+        if instance == true && count == 16 {
             return blocks;
         }
 
@@ -135,17 +128,63 @@ fn split_bytes_into_blocks(data: &[u8], block_size: usize, instance: bool) -> Ve
 
 
 fn bruteforce_xor(s: &Vec<u8>)  {
+
+    let mut best_key = 'a';
+    let mut best_score = 0;
+
     for byte_value in 0..=255 {
         let byte = byte_value as u8;
+        
+
         let mut xor_result_string : Vec<u8> = Vec::new();
+
+
         for ch in s {
             let res = (ch ^ byte) as u8;
             xor_result_string.push(res);
         }
-        let decoded_str = String::from_utf8_lossy(&xor_result_string);
 
-        if decoded_str.chars().all(|c| c.is_ascii_alphanumeric() || c.is_whitespace()) {
-            println!(" Decoded: {}",  decoded_str);
+        let score = score_plaintext(&xor_result_string);
+        
+        if score > best_score {
+            best_score = score;
+            best_key = char::from(byte_value);
+        } 
+    }
+    print!("{}", best_key);
+   
+}
+
+fn score_plaintext(plaintext: &[u8]) -> usize {
+    let valid_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ,.!?";
+    let mut score = 0;
+
+    for &byte in plaintext.iter() {
+        let char = byte as char;
+        if valid_chars.contains(char) {
+            score += 1;
         }
     }
+
+    score
 }
+
+
+fn transpose_block(block_bytes:Vec<Vec<u8>> , key_size: usize) -> Vec<Vec<u8>> {
+
+    let mut blocks: Vec<Vec<_>> = Vec::new();
+    let mut trans_block = Vec::with_capacity(key_size);
+
+    for j in 0..key_size {
+            for block in &block_bytes {
+                match block.get(j) {
+                    Some(value) => trans_block.push(*value),
+                    None => break,
+                }    
+                
+            }
+        blocks.push(trans_block.clone());
+        trans_block.clear();
+    }    
+    blocks
+}    
