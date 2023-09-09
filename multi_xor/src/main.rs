@@ -19,7 +19,7 @@ fn main() -> io::Result<()> {
 
 
 fn bruteforce_xor(s: &Vec<u8>)  {
-    for byte_value in 0..=255 {
+    for byte_value in 0..=128 {
         let byte = byte_value as u8;
         let mut xor_result_string : Vec<u8> = Vec::new();
         for ch in s {

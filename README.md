@@ -17,3 +17,18 @@ fn main () {
 }
 
 ```
+
+
+
+## Calculating Minimum Hamming Distance Between Two Strings
+
+In a set of strings of equal lengths, the minimum Hamming distance is the smallest Hamming distance between all possible pairs of strings in that set.
+
+calculate xor of two strings , count the numbers of 1s in the resultant
+
+```
+
+
+
+
+```
