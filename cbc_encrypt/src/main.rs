@@ -1,45 +1,57 @@
-use std::io::{Read, Write};
 use std::fs::File;
 use std::io::{self, BufRead};
+use base64::{Engine as _, engine::general_purpose};
 use aes::Aes128;
-use block_modes::block_padding::Pkcs7;
-use block_modes::{BlockMode, Cbc};
-
+use aes::cipher::{
+    BlockDecrypt, KeyInit,
+    generic_array::GenericArray,
+};
+use hex::FromHex;
 
 fn main() {
     let file_content = read_file("encrypted.txt");  
-    let key = "YELLOW SUBMARINE".as_bytes();
-    let iv = "\0x";
+    let key_str = "YELLOW SUBMARINE".as_bytes();
 
-    let block_bytes = split_blocks(decode(file_content));
+    let iv_string = "00000000000000000000000000000000";
 
-    let initial = xor_vectors(decrypt_blocks(block_bytes[0], key), iv);
+    let mut result: Vec<u8> = Vec::new();
 
-    for i in (1..block_bytes-1) {
+    let iv = Vec::<u8>::from_hex(iv_string).expect("Unable to hexify");
 
-        xor_vectors(decrypt_blocks(block_bytes[i], key), block_bytes[i-1]);
+    println!("{:?}", iv);
 
+    let key= GenericArray::clone_from_slice(key_str);
+    
+
+    let decoded = &general_purpose::STANDARD_NO_PAD.decode(file_content).unwrap();
+
+    let block_bytes = split_blocks(decoded);
+
+    let initial_plain = xor_vectors(&decrypt_blocks(block_bytes[0], key), &iv).expect("cant xor");
+
+    
+    // 
+
+    result.extend(initial_plain.iter());
+
+    for i in 1..block_bytes.len() {
+        
+        let  text = xor_vectors(&decrypt_blocks(block_bytes[i], key), block_bytes[i-1]).expect("cant xor");
+
+        result.extend(text);
     }
 
-    let ciphertext_base64 = encode(ciphertext);
+    // let ciphertext_base64 = encode(ciphertext);
+    let first = String::from_utf8(result).expect("can't ");
 
-    println!("Base64-encoded Ciphertext: {}", ciphertext_base64);
-
-}
-
-
-fn encrypt_block(key, plain_text) -> String {
-
-    let cipher = Aes128::ecb_encryptor(&key);
-    let mut ciphertext = Vec::new();
-    cipher.encrypt(&mut ciphertext, &plain_text).expect("encryption failed");
-    ciphertext
+    println!("Result: {}", first);
 
 }
 
 
-fn read_file(file: &str) -> String{
-    let file = File::open().unwrap();
+
+fn read_file(file: &str) -> String {
+    let file = File::open(file).unwrap();
     let mut base64_file = String::new();
     let reader = io::BufReader::new(file);
 
@@ -48,22 +60,24 @@ fn read_file(file: &str) -> String{
         base64_file += &line_content;
     }
    
-    base64_file
-    
+    base64_file   
 }
 
-fn decrypt_blocks(block1 : &[u8], key : &[u8]) {
+fn decrypt_blocks(block1 : &[u8], key: GenericArray<u8, aes::cipher::typenum::UInt<aes::cipher::typenum::UInt<aes::cipher::typenum::UInt<aes::cipher::typenum::UInt<aes::cipher::typenum::UInt<aes::cipher::typenum::UTerm, aes::cipher::typenum::B1>, aes::cipher::typenum::B0>, aes::cipher::typenum::B0>, aes::cipher::typenum::B0>, aes::cipher::typenum::B0>> )-> Vec<u8> {
 
-    let mut decryptor = aes::ecb_decryptor(KeySize::KeySize128, key, NoPadding);
+    let cipher = Aes128::new(&key);
 
+    let mut block = GenericArray::clone_from_slice(block1);
+
+    cipher.decrypt_block(&mut block);
+
+    block.into_iter().collect::<Vec<u8>>()
 }
 
 fn split_blocks(blocks : &[u8]) -> Vec<&[u8]>{
 
     let len: usize =  blocks.len();
-    // if LEN % 16 != 0 {
-    //     return None;
-    // }
+   
     let mut block_bytes = Vec::with_capacity(len/16);
 
     for i in (0..len).step_by(16) {
