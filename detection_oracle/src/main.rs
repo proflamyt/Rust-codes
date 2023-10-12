@@ -4,8 +4,10 @@ use rand::Rng;
 
 fn main() {
     let my_string = "Olamide";
-    let my_bytes = my_string.as_bytes();
-    let key = rand_key();
+    let my_bytes: &[u8] = my_string.as_bytes();
+    let _key = rand_key();
+    let paded_bytes = pad_plaintext(my_bytes);
+    print!("{:?}", paded_bytes);
 }
 
 fn encryption_oracle(input: String) {
@@ -37,6 +39,5 @@ fn pad_plaintext(plaintext: &[u8]) -> Vec<u8> {
 
 fn rand_key() -> [u8; 16] {
     let random_bytes = rand::thread_rng().gen::<[u8; 16]>();
-    println!("{:?}", random_bytes);
     random_bytes
 }
